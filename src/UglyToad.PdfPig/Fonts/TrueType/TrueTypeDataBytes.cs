@@ -23,7 +23,7 @@
             retval += (ReadUnsignedShort() / 65536.0f);
             return retval;
         }
-
+        
         public short ReadSignedShort()
         {
             ReadBuffered(internalBuffer, 2);

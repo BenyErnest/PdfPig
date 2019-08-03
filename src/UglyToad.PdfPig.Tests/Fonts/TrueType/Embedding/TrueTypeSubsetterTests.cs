@@ -19,7 +19,9 @@
 
             var font = parser.Parse(new TrueTypeDataBytes(new ByteArrayInputBytes(file)));
               
-            TrueTypeSubsetter.Subset(font, new int[]{ 'H', 'e', 'l', 'o', 'w', 'r', 'd' });
+            var result = TrueTypeSubsetter.Subset(font, new int[]{ 'H', 'e', 'l', 'o', 'w', 'r', 'd' });
+
+            Assert.NotEmpty(result);
         }
 
         private static byte[] GetFontFile(string name)
