@@ -4,6 +4,7 @@
     using Geometry;
     using IO;
     using Tokens;
+    using UglyToad.PdfPig.Core;
     using Util.JetBrains.Annotations;
 
     /// <summary>
@@ -18,7 +19,12 @@
         PdfPath CurrentPath { get; }
 
         /// <summary>
-        /// The current p
+        /// The active colorspaces for this content stream.
+        /// </summary>
+        IColorspaceContext ColorspaceContext { get; }
+
+        /// <summary>
+        /// The current position.
         /// </summary>
         PdfPoint CurrentPosition { get; set; }
 
@@ -32,6 +38,11 @@
         /// The matrices for the current text state.
         /// </summary>
         TextMatrices TextMatrices { get; }
+
+        /// <summary>
+        /// The current transformation matrix
+        /// </summary>
+        TransformationMatrix CurrentTransformationMatrix { get; }
 
         /// <summary>
         /// The number of graphics states on the stack.
@@ -78,8 +89,20 @@
         void StrokePath(bool close);
 
         /// <summary>
+        /// Fill the current path.
+        /// </summary>
+        /// <param name="close">Whether to also close the path.</param>
+        void FillPath(bool close);
+
+        /// <summary>
         /// Close the current path.
         /// </summary>
         void ClosePath();
+
+        /// <summary>
+        /// Update the graphics state to apply the state from the named ExtGState dictionary.
+        /// </summary>
+        /// <param name="stateName">The name of the state to apply.</param>
+        void SetNamedGraphicsState(NameToken stateName);
     }
 }

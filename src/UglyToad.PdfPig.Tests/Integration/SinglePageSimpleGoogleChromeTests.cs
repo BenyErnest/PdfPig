@@ -189,7 +189,7 @@ namespace UglyToad.PdfPig.Tests.Integration
                 }
             }
         }
-        
+
         private static IReadOnlyList<AssertablePositionData> GetPdfBoxPositionData()
         {
             // X    Y   Width   Letter  FontSize    Font
@@ -418,7 +418,7 @@ namespace UglyToad.PdfPig.Tests.Integration
 209.499	173.25	3.045609	.	0	ArialMT
 212.543	173.25	3.045609	 	0	ArialMT";
 
-            return fromOther.Split(new[]{"\r\n", "\r", "\n"}, StringSplitOptions.RemoveEmptyEntries)
+            return fromOther.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(AssertablePositionData.Parse)
                 .ToList();
         }

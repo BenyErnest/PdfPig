@@ -1,12 +1,11 @@
 ﻿namespace UglyToad.PdfPig.Tests.Graphics
 {
     using System.Collections.Generic;
-    using Content;
-    using PdfPig.Fonts;
     using PdfPig.Geometry;
     using PdfPig.Graphics;
     using PdfPig.IO;
     using PdfPig.Tokens;
+    using UglyToad.PdfPig.Core;
 
     internal class TestOperationContext : IOperationContext
     {
@@ -18,14 +17,21 @@
         public TextMatrices TextMatrices { get; set; }
             = new TextMatrices();
 
+        public TransformationMatrix CurrentTransformationMatrix
+        {
+            get { return GetCurrentState().CurrentTransformationMatrix; }
+        }
+
         public PdfPath CurrentPath { get; set; }
+
+        public IColorspaceContext ColorspaceContext { get; } = new ColorspaceContext();
 
         public PdfPoint CurrentPosition { get; set; }
 
         public TestOperationContext()
         {
             StateStack.Push(new CurrentGraphicsState());
-            CurrentPath = new PdfPath();
+            CurrentPath = new PdfPath(CurrentTransformationMatrix);
         }
 
         public CurrentGraphicsState GetCurrentState()
@@ -62,26 +68,51 @@
         public void StrokePath(bool close)
         {
         }
+        public void FillPath(bool close)
+        {
+        }
 
         public void ClosePath()
         {
         }
+
+        public void SetNamedGraphicsState(NameToken stateName)
+        {
+        }
     }
 
-    internal class TestResourceStore : IResourceStore
+    public class TestColorspaceContext : IColorspaceContext
     {
-        public void LoadResourceDictionary(DictionaryToken dictionary, bool isLenientParsing)
+        public void SetStrokingColorspace(NameToken colorspace)
         {
         }
 
-        public IFont GetFont(NameToken name)
+        public void SetNonStrokingColorspace(NameToken colorspace)
         {
-            return null;
         }
 
-        public StreamToken GetXObject(NameToken name)
+        public void SetStrokingColorGray(decimal gray)
         {
-            return null;
+        }
+
+        public void SetStrokingColorRgb(decimal r, decimal g, decimal b)
+        {
+        }
+
+        public void SetStrokingColorCmyk(decimal c, decimal m, decimal y, decimal k)
+        {
+        }
+
+        public void SetNonStrokingColorGray(decimal gray)
+        {
+        }
+
+        public void SetNonStrokingColorRgb(decimal r, decimal g, decimal b)
+        {
+        }
+
+        public void SetNonStrokingColorCmyk(decimal c, decimal m, decimal y, decimal k)
+        {
         }
     }
 }

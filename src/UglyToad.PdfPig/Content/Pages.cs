@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using Geometry;
     using Logging;
     using Parser.Parts;
     using Tokenization.Scanner;
@@ -105,6 +104,11 @@
                 var mediaBox = DirectObjectFinder.Get<ArrayToken>(token, pdfScanner);
 
                 pageTreeMembers.MediaBox = new MediaBox(mediaBox.ToRectangle());
+            }
+
+            if (currentPageDictionary.TryGet(NameToken.Rotate, pdfScanner, out NumericToken rotateToken))
+            {
+                pageTreeMembers.Rotation = rotateToken.Int;
             }
 
             if (!currentPageDictionary.TryGet(NameToken.Kids, out var kids)

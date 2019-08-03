@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using Content;
+    using Core;
     using Fonts;
     using Geometry;
     using IO;
@@ -20,16 +21,26 @@
         private readonly List<PdfPath> paths = new List<PdfPath>();
         private readonly IResourceStore resourceStore;
         private readonly UserSpaceUnit userSpaceUnit;
+        private readonly PageRotationDegrees rotation;
         private readonly bool isLenientParsing;
         private readonly IPdfTokenScanner pdfScanner;
         private readonly XObjectFactory xObjectFactory;
         private readonly ILog log;
 
         private Stack<CurrentGraphicsState> graphicsStack = new Stack<CurrentGraphicsState>();
+        private IFont activeExtendedGraphicsStateFont = null;
 
         public TextMatrices TextMatrices { get; } = new TextMatrices();
 
+        public TransformationMatrix CurrentTransformationMatrix
+        {
+            get { return GetCurrentState().CurrentTransformationMatrix; }
+        }
+
         public PdfPath CurrentPath { get; private set; }
+
+        public IColorspaceContext ColorspaceContext { get; } = new ColorspaceContext();
+
         public PdfPoint CurrentPosition { get; set; }
 
         public int StackSize => graphicsStack.Count;
@@ -42,14 +53,14 @@
         };
 
         public List<Letter> Letters = new List<Letter>();
-
-        public ContentStreamProcessor(PdfRectangle cropBox, IResourceStore resourceStore, UserSpaceUnit userSpaceUnit, bool isLenientParsing, 
+        public ContentStreamProcessor(PdfRectangle cropBox, IResourceStore resourceStore, UserSpaceUnit userSpaceUnit, PageRotationDegrees rotation, bool isLenientParsing,
             IPdfTokenScanner pdfScanner,
             XObjectFactory xObjectFactory,
             ILog log)
         {
             this.resourceStore = resourceStore;
             this.userSpaceUnit = userSpaceUnit;
+            this.rotation = rotation;
             this.isLenientParsing = isLenientParsing;
             this.pdfScanner = pdfScanner;
             this.xObjectFactory = xObjectFactory;
@@ -62,8 +73,8 @@
             var currentState = CloneAllStates();
 
             ProcessOperations(operations);
-            
-            return new PageContent(operations, Letters, xObjects, pdfScanner, xObjectFactory, isLenientParsing);
+
+            return new PageContent(operations, Letters, paths, xObjects, pdfScanner, xObjectFactory, isLenientParsing);
         }
 
         private void ProcessOperations(IReadOnlyList<IGraphicsStateOperation> operations)
@@ -81,7 +92,7 @@
             graphicsStack.Push(saved.Peek().DeepClone());
             return saved;
         }
-        
+
         [DebuggerStepThrough]
         public CurrentGraphicsState GetCurrentState()
         {
@@ -91,6 +102,7 @@
         public void PopState()
         {
             graphicsStack.Pop();
+            activeExtendedGraphicsStateFont = null;
         }
 
         public void PushState()
@@ -102,13 +114,13 @@
         {
             var currentState = GetCurrentState();
 
-            var font = resourceStore.GetFont(currentState.FontState.FontName);
+            var font = currentState.FontState.FromExtendedGraphicsState ? activeExtendedGraphicsStateFont : resourceStore.GetFont(currentState.FontState.FontName);
 
             if (font == null)
             {
                 throw new InvalidOperationException($"Could not find the font with name {currentState.FontState.FontName} in the resource store. It has not been loaded yet.");
             }
-            
+
             var fontSize = currentState.FontState.FontSize;
             var horizontalScaling = currentState.FontState.HorizontalScaling / 100m;
             var characterSpacing = currentState.FontState.CharacterSpacing;
@@ -121,8 +133,8 @@
 
             // TODO: this does not seem correct, produces the correct result for now but we need to revisit.
             // see: https://stackoverflow.com/questions/48010235/pdf-specification-get-font-size-in-points
-            var pointSize = decimal.Round(fontSize * transformationMatrix.A, 2);
-            
+            var pointSize = decimal.Round(rotation.Rotate(transformationMatrix).Multiply(TextMatrices.TextMatrix).Multiply(fontSize).A, 2);
+
             while (bytes.MoveNext())
             {
                 var code = font.ReadCharacterCode(bytes, out int codeLength);
@@ -132,6 +144,8 @@
                 if (!foundUnicode || unicode == null)
                 {
                     log.Warn($"We could not find the corresponding character with code {code} in font {font.Name}.");
+                    // Try casting directly to string as in PDFBox 1.8.
+                    unicode = new string((char)code, 1);
                 }
 
                 var wordSpacing = 0m;
@@ -139,7 +153,7 @@
                 {
                     wordSpacing += GetCurrentState().FontState.WordSpacing;
                 }
-                
+
                 if (font.IsVertical)
                 {
                     throw new NotImplementedException("Vertical fonts are currently unsupported, please submit a pull request or issue with an example file.");
@@ -147,11 +161,11 @@
 
                 var boundingBox = font.GetBoundingBox(code);
 
-                var transformedGlyphBounds = transformationMatrix
+                var transformedGlyphBounds = rotation.Rotate(transformationMatrix)
                     .Transform(TextMatrices.TextMatrix
                     .Transform(renderingMatrix
                     .Transform(boundingBox.GlyphBounds)));
-                var transformedPdfBounds = transformationMatrix
+                var transformedPdfBounds = rotation.Rotate(transformationMatrix)
                     .Transform(TextMatrices.TextMatrix
                         .Transform(renderingMatrix.Transform(new PdfRectangle(0, 0, boundingBox.Width, 0))));
 
@@ -182,7 +196,7 @@
             var textState = currentState.FontState;
 
             var fontSize = textState.FontSize;
-            var horizontalScaling = textState.HorizontalScaling/100m;
+            var horizontalScaling = textState.HorizontalScaling / 100m;
             var font = resourceStore.GetFont(textState.FontName);
 
             var isVertical = font.IsVertical;
@@ -216,7 +230,7 @@
                     }
                     else
                     {
-                        bytes = OtherEncodings.StringAsLatin1Bytes(((StringToken) token).Data);
+                        bytes = OtherEncodings.StringAsLatin1Bytes(((StringToken)token).Data);
                     }
 
                     ShowText(new ByteArrayInputBytes(bytes));
@@ -238,7 +252,7 @@
 
             if (subType.Equals(NameToken.Ps))
             {
-               xObjects[XObjectType.PostScript].Add(new XObjectContentRecord(XObjectType.PostScript, xObjectStream, matrix));
+                xObjects[XObjectType.PostScript].Add(new XObjectContentRecord(XObjectType.PostScript, xObjectStream, matrix));
             }
             else if (subType.Equals(NameToken.Image))
             {
@@ -256,7 +270,7 @@
 
         public void BeginSubpath()
         {
-            CurrentPath = new PdfPath();
+            CurrentPath = new PdfPath(CurrentTransformationMatrix);
         }
 
         public void StrokePath(bool close)
@@ -265,13 +279,52 @@
             {
                 ClosePath();
             }
+            paths.Add(CurrentPath);
+        }
+
+        public void FillPath(bool close)
+        {
+            if (close)
+            {
+                ClosePath();
+            }
+            paths.Add(CurrentPath);
         }
 
         public void ClosePath()
         {
             CurrentPath.ClosePath();
-            paths.Add(CurrentPath);
             CurrentPath = null;
+        }
+
+        public void SetNamedGraphicsState(NameToken stateName)
+        {
+            var currentGraphicsState = GetCurrentState();
+
+            var state = resourceStore.GetExtendedGraphicsStateDictionary(stateName);
+
+            if (state.TryGet(NameToken.Lw, pdfScanner, out NumericToken lwToken))
+            {
+                currentGraphicsState.LineWidth = lwToken.Data;
+            }
+
+            if (state.TryGet(NameToken.Lc, pdfScanner, out NumericToken lcToken))
+            {
+                currentGraphicsState.CapStyle = (LineCapStyle)lcToken.Int;
+            }
+
+            if (state.TryGet(NameToken.Lj, pdfScanner, out NumericToken ljToken))
+            {
+                currentGraphicsState.JoinStyle = (LineJoinStyle)ljToken.Int;
+            }
+
+            if (state.TryGet(NameToken.Font, pdfScanner, out ArrayToken fontArray) && fontArray.Length == 2
+                && fontArray.Data[0] is IndirectReferenceToken fontReference && fontArray.Data[1] is NumericToken sizeToken)
+            {
+                currentGraphicsState.FontState.FromExtendedGraphicsState = true;
+                currentGraphicsState.FontState.FontSize = sizeToken.Data;
+                activeExtendedGraphicsStateFont = resourceStore.GetFontDirectly(fontReference, isLenientParsing);
+            }
         }
 
         private void AdjustTextMatrix(decimal tx, decimal ty)

@@ -1,5 +1,6 @@
 ﻿namespace UglyToad.PdfPig.Tests
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
@@ -19,6 +20,12 @@
 
             foreach (var type in types)
             {
+                // Skip coverage measuring instrumentation classes.
+                if (type.FullName.StartsWith("Coverlet", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 if (type.IsPublic)
                 {
                     publicTypeNames.Add(type.FullName);
@@ -43,6 +50,7 @@
                 "UglyToad.PdfPig.Content.DocumentInformation",
                 "UglyToad.PdfPig.Content.Letter",
                 "UglyToad.PdfPig.Content.Page",
+                "UglyToad.PdfPig.Content.PageRotationDegrees",
                 "UglyToad.PdfPig.Content.PageSize",
                 "UglyToad.PdfPig.Content.Word",
                 "UglyToad.PdfPig.Content.TextLine",
@@ -51,6 +59,12 @@
                 "UglyToad.PdfPig.CrossReference.CrossReferenceTable",
                 "UglyToad.PdfPig.CrossReference.CrossReferenceType",
                 "UglyToad.PdfPig.CrossReference.TrailerDictionary",
+                "UglyToad.PdfPig.DocumentLayoutAnalysis.Distances",
+                "UglyToad.PdfPig.DocumentLayoutAnalysis.MathExtensions",
+                "UglyToad.PdfPig.DocumentLayoutAnalysis.NearestNeighbourWordExtractor",
+                "UglyToad.PdfPig.DocumentLayoutAnalysis.RecursiveXYCut",
+                "UglyToad.PdfPig.DocumentLayoutAnalysis.XYNode",
+                "UglyToad.PdfPig.DocumentLayoutAnalysis.XYLeaf",
                 "UglyToad.PdfPig.Exceptions.PdfDocumentEncryptedException",
                 "UglyToad.PdfPig.Exceptions.PdfDocumentFormatException",
                 "UglyToad.PdfPig.Fonts.DescriptorFontFile",
@@ -70,6 +84,7 @@
                 "UglyToad.PdfPig.Graphics.Core.TextRenderingMode",
                 "UglyToad.PdfPig.Graphics.CurrentFontState",
                 "UglyToad.PdfPig.Graphics.CurrentGraphicsState",
+                "UglyToad.PdfPig.Graphics.IColorspaceContext",
                 "UglyToad.PdfPig.Graphics.IOperationContext",
                 "UglyToad.PdfPig.Graphics.Operations.ClippingPaths.ModifyClippingByEvenOddIntersect",
                 "UglyToad.PdfPig.Graphics.Operations.ClippingPaths.ModifyClippingByNonZeroWindingIntersect",
@@ -159,6 +174,7 @@
                 "UglyToad.PdfPig.Tokens.HexToken",
                 "UglyToad.PdfPig.Tokens.IDataToken`1",
                 "UglyToad.PdfPig.Tokens.IndirectReferenceToken",
+                "UglyToad.PdfPig.Tokens.InlineImageDataToken",
                 "UglyToad.PdfPig.Tokens.IToken",
                 "UglyToad.PdfPig.Tokens.NameToken",
                 "UglyToad.PdfPig.Tokens.NullToken",

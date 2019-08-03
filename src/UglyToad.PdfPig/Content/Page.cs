@@ -9,6 +9,7 @@
     using Util;
     using Util.JetBrains.Annotations;
     using XObjects;
+    using Geometry;
 
     /// <summary>
     /// Contains the content and provides access to methods of a single page in the <see cref="PdfDocument"/>.
@@ -32,10 +33,15 @@
         internal PageContent Content { get; }
 
         /// <summary>
+        /// The rotation of the page in degrees (clockwise). Valid values are 0, 90, 180 and 270.
+        /// </summary>
+        public PageRotationDegrees Rotation { get; }
+
+        /// <summary>
         /// The set of <see cref="Letter"/>s drawn by the PDF content.
         /// </summary>
         public IReadOnlyList<Letter> Letters => Content?.Letters ?? new Letter[0];
-
+        
         /// <summary>
         /// The full text of all characters on the page in the order they are presented in the PDF content.
         /// </summary>
@@ -67,7 +73,7 @@
         [NotNull]
         public Experimental ExperimentalAccess { get; }
 
-        internal Page(int number, DictionaryToken dictionary, MediaBox mediaBox, CropBox cropBox, PageContent content,
+        internal Page(int number, DictionaryToken dictionary, MediaBox mediaBox, CropBox cropBox, PageRotationDegrees rotation, PageContent content,
             AnnotationProvider annotationProvider)
         {
             if (number <= 0)
@@ -80,6 +86,7 @@
             Number = number;
             MediaBox = mediaBox;
             CropBox = cropBox;
+            Rotation = rotation;
             Content = content;
             Text = GetText(content);
 
@@ -124,6 +131,11 @@
             private readonly Page page;
             private readonly AnnotationProvider annotationProvider;
 
+            /// <summary>
+            /// The set of <see cref="PdfPath"/>s drawn by the PDF content.
+            /// </summary>
+            public IReadOnlyList<PdfPath> Paths => page.Content?.Paths ?? new List<PdfPath>();
+
             internal Experimental(Page page, AnnotationProvider annotationProvider)
             {
                 this.page = page;
@@ -147,6 +159,15 @@
             public IEnumerable<Annotation> GetAnnotations()
             {
                 return annotationProvider.GetAnnotations();
+            }
+
+            /// <summary>
+            /// Gets the calculated letter size in points.
+            /// This is considered experimental because the calculated value is incorrect for some documents at present.
+            /// </summary>
+            public decimal GetPointSize(Letter letter)
+            {
+                return letter.PointSize;
             }
         }
     }
