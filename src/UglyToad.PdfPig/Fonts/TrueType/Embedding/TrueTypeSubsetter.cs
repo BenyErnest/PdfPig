@@ -26,6 +26,9 @@
 
             WriteOffsetTable(font, writer, numberOfTables);
 
+            var tableRecordOffsets = ReserveTableRecordEntries(writer);
+
+            var headerOffset = WriteHeaderTable(head, writer);
 
             return writer.GetBytes();
         }
@@ -66,9 +69,92 @@
 
         }
 
-        private static void WriteHeadTable(HeaderTable header)
+        private static TableRecordEntryOffsets ReserveTableRecordEntries(TrueTypeDataWriter writer)
         {
+            long ReserveEntry(string tag)
+            {
+                writer.WriteTag(tag);
+                var position = writer.Position;
 
+                // Checksum
+                writer.WriteUnsignedInt(0);
+                // Offset from beginning of file
+                writer.WriteUnsignedInt(0);
+                // Length of the table
+                writer.WriteUnsignedInt(0);
+
+                return position;
+            }
+
+            return new TableRecordEntryOffsets(ReserveEntry("head"),
+                ReserveEntry("hhea"),
+                ReserveEntry("hmtx"),
+                ReserveEntry("loca"),
+                ReserveEntry("maxp"),
+                ReserveEntry("glyf"));
+        }
+
+        private static long WriteHeaderTable(HeaderTable header, TrueTypeDataWriter writer)
+        {
+            var startsAt = writer.Position;
+
+            // Major version
+            writer.WriteUnsignedShort(1);
+            // Minor version
+            writer.WriteUnsignedShort(0);
+            writer.Write32Fixed((double)header.Revision);
+
+            var checksumAdjustmentLocation = writer.Position;
+            writer.WriteUnsignedInt(0);
+
+            writer.WriteUnsignedInt(header.MagicNumber);
+            writer.WriteUnsignedShort(header.Flags);
+
+            writer.WriteUnsignedShort(header.UnitsPerEm);
+
+            writer.WriteDateTime(header.Created);
+            writer.WriteDateTime(header.Modified);
+
+            writer.WriteSignedShort((short)header.Bounds.Left);
+            writer.WriteSignedShort((short)header.Bounds.Bottom);
+            writer.WriteSignedShort((short)header.Bounds.Right);
+            writer.WriteSignedShort((short)header.Bounds.Top);
+
+            writer.WriteUnsignedShort((ushort)header.MacStyle);
+            writer.WriteUnsignedShort(header.LowestRecommendedPpem);
+            writer.WriteSignedShort((short)header.FontDirectionHint);
+            writer.WriteSignedShort(header.IndexToLocFormat);
+            writer.WriteSignedShort(header.GlyphDataFormat);
+
+            return startsAt;
+        }
+
+        private class TableRecordEntryOffsets
+        {
+            public long Header { get; }
+
+            public long HorizontalHeader { get; }
+
+            public long HorizontalMetrics { get; }
+
+            public long IndexToLocation { get; }
+
+            public long MaximumProfile { get; }
+
+            public long Glyph { get; }
+
+            public TableRecordEntryOffsets(long header, long horizontalHeader, long horizontalMetrics, 
+                long indexToLocation, 
+                long maximumProfile, 
+                long glyph)
+            {
+                Header = header;
+                HorizontalHeader = horizontalHeader;
+                HorizontalMetrics = horizontalMetrics;
+                IndexToLocation = indexToLocation;
+                MaximumProfile = maximumProfile;
+                Glyph = glyph;
+            }
         }
     }
 }

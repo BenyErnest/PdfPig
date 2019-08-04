@@ -19,11 +19,11 @@
 
         public long CheckSumAdjustment { get; }
 
-        public long MagicNumber { get; }
+        public uint MagicNumber { get; }
 
-        public int Flags { get; }
+        public ushort Flags { get; }
 
-        public int UnitsPerEm { get; }
+        public ushort UnitsPerEm { get; }
 
         public DateTime Created { get; }
 
@@ -36,7 +36,7 @@
         /// <summary>
         /// Smallest readable size in pixels.
         /// </summary>
-        public int LowestRecommendedPpem { get; }
+        public ushort LowestRecommendedPpem { get; }
 
         public FontDirection FontDirectionHint { get; }
 
@@ -51,12 +51,12 @@
         public short GlyphDataFormat { get; }
 
         public HeaderTable(TrueTypeHeaderTable directoryTable, decimal version, decimal revision, long checkSumAdjustment, 
-            long magicNumber, int flags, int unitsPerEm, 
+            uint magicNumber, ushort flags, ushort unitsPerEm, 
             DateTime created, DateTime modified, 
             short xMin, short yMin, 
             short xMax, short yMax, 
             int macStyle, 
-            int lowestRecommendedPpem, 
+            ushort lowestRecommendedPpem, 
             short fontDirectionHint, 
             short indexToLocFormat, 
             short glyphDataFormat)
@@ -117,26 +117,71 @@
                 fontDirectionHint, indexToLocFormat, glyphDataFormat);
         }
 
-        public enum FontDirection
+        /// <summary>
+        /// A value indicating the direction of glyphs in the font.
+        /// </summary>
+        public enum FontDirection : short
         {
+            /// <summary>
+            /// Like <see cref="StronglyRightToLeft"/> but also contains neutrals.
+            /// </summary>
             StronglyRightToLeftWithNeutrals = -2,
+            /// <summary>
+            /// Only strongly right to left.
+            /// </summary>
             StronglyRightToLeft = -1,
+            /// <summary>
+            /// Fully mixed directional glyphs.
+            /// </summary>
             FullyMixedDirectional = 0,
+            /// <summary>
+            /// Only strongly left to right.
+            /// </summary>
             StronglyLeftToRight = 1,
+            /// <summary>
+            /// Like <see cref="StronglyLeftToRight"/> but also contains neutrals.
+            /// </summary>
             StronglyLeftToRightWithNeutrals = 2
         }
 
+        /// <summary>
+        /// The MacStyle of the font (meaning is not documented).
+        /// </summary>
         [Flags]
         internal enum HeaderMacStyle : ushort
         {
+            /// <summary>
+            /// No style set.
+            /// </summary>
             None = 0,
+            /// <summary>
+            /// Bold.
+            /// </summary>
             Bold = 1 << 0,
+            /// <summary>
+            /// Italic.
+            /// </summary>
             Italic = 1 << 1,
+            /// <summary>
+            /// Underline.
+            /// </summary>
             Underline = 1 << 2,
+            /// <summary>
+            /// Outline.
+            /// </summary>
             Outline = 1 << 3,
+            /// <summary>
+            /// Shadow.
+            /// </summary>
             Shadow = 1 << 4,
+            /// <summary>
+            /// Condensed (narrow).
+            /// </summary>
             Condensed = 1 << 5,
-            Extended = 1 << 6,
+            /// <summary>
+            /// Extended.
+            /// </summary>
+            Extended = 1 << 6
         }
     }
 }

@@ -41,7 +41,7 @@
             Assert.Equal(1, font.TableRegister.HeaderTable.Revision);
 
             Assert.Equal(1142661421, font.TableRegister.HeaderTable.CheckSumAdjustment);
-            Assert.Equal(1594834165, font.TableRegister.HeaderTable.MagicNumber);
+            Assert.Equal((uint)1594834165, font.TableRegister.HeaderTable.MagicNumber);
 
             Assert.Equal(9, font.TableRegister.HeaderTable.Flags);
 

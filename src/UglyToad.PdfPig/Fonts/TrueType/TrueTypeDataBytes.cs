@@ -83,11 +83,11 @@
             return encoding.GetString(data, 0, data.Length);
         }
 
-        public long ReadUnsignedInt()
+        public uint ReadUnsignedInt()
         {
             ReadBuffered(internalBuffer, 4);
 
-            return ((long)internalBuffer[0] << 24) + ((long)internalBuffer[1] << 16) + (internalBuffer[2] << 8) + (internalBuffer[3] << 0);
+            return (uint)(((long)internalBuffer[0] << 24) + ((long)internalBuffer[1] << 16) + (internalBuffer[2] << 8) + (internalBuffer[3] << 0));
         }
 
         public int ReadSignedInt()
